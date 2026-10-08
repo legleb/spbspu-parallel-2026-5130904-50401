@@ -15,6 +15,16 @@ namespace sedov
   };
 
   Box calc_box(const std::vector< Circle > & circles);
+
+  struct Result
+  {
+    size_t hits_union, hits_inter;
+  };
+
+  bool is_inside(double dx, double dy, double r);
+  Result calc(const std::vector< Circle > & circles, const Box & box, size_t tests, size_t seed);
+  Result count_total_hits(const std::vector< Circle > & circles, const Box & box, size_t threads, size_t tries,
+    size_t seed);
 }
 
 int main(int argc, char ** argv)
@@ -59,6 +69,17 @@ int main(int argc, char ** argv)
   }
 
   sedov::Box box = sedov::calc_box(circles);
+
+  sedov::Result hits{0, 0};
+  try {
+    hits = sedov::count_total_hits(circles, box, threads, tries, seed);
+  } catch (const std::system_error & se) {
+    std::cerr << se.what() << '\n';
+    return 2;
+  } catch (const std::bad_alloc & ba) {
+    std::cerr << ba.what() << '\n';
+    return 2;
+  }
 }
 
 std::vector< sedov::Circle > sedov::read_circles(std::istream & in)
