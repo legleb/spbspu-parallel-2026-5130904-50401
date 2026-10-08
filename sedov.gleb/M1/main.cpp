@@ -1,5 +1,6 @@
 #include <iostream>
 #include <random>
+#include <future>
 
 namespace sedov
 {
@@ -146,4 +147,26 @@ sedov::Result sedov::calc(const std::vector< Circle > & circles, const Box & box
     }
   }
   return Result{hits_union, hits_inter};
+}
+
+sedov::Result sedov::count_total_hits(const std::vector< Circle > & circles, const Box & box, size_t threads,
+  size_t tries, size_t seed)
+{
+  size_t base = tries / threads;
+  size_t rem = tries % threads;
+  std::vector< std::future< Result > > futures;
+  futures.reserve(threads);
+  for (size_t i = 0; i < threads; ++i) {
+    size_t local_tries = base + (i < rem ? 1 : 0);
+    size_t local_seed = seed + i;
+    futures.emplace_back(std::async(std::launch::async, calc, std::cref(circles), std::cref(box), local_tries,
+      local_seed));
+  }
+  Result res{0, 0};
+  for (size_t i = 0; i < threads; ++i) {
+    Result local_res = futures[i].get();
+    res.hits_union += local_res.hits_union;
+    res.hits_inter += local_res.hits_inter;
+  }
+  return res;
 }
