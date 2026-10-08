@@ -93,7 +93,7 @@ int main(int argc, char** argv)
       * (static_cast< double >(box.y_max) - static_cast< double >(box.y_min));
   const double s_union = square * static_cast< double >(hits.hits_union) / static_cast< double >(tries);
   const double s_inter = square * static_cast< double >(hits.hits_inter) / static_cast< double >(tries);
-  std::cout << std::setprecision(std::numeric_limits< double >::max_digits10) << s_union << ' ' << s_inter << '\n';
+  std::cout << s_union << ' ' << s_inter << '\n';
   return 0;
 }
 
@@ -152,12 +152,8 @@ sedov::Result sedov::calc(const std::vector< Circle >& circles, const Box& box, 
       in_any = in_any || res;
       in_all = in_all && res;
     }
-    if (in_any) {
-      ++hits_union;
-    }
-    if (in_all) {
-      ++hits_inter;
-    }
+    hits_union += in_any;
+    hits_inter += in_all;
   }
   return Result{hits_union, hits_inter};
 }
