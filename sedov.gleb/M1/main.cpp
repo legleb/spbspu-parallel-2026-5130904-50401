@@ -1,4 +1,5 @@
 #include <iostream>
+#include <random>
 
 namespace sedov
 {
@@ -112,4 +113,37 @@ sedov::Box sedov::calc_box(const std::vector< Circle > & circles)
     b.y_max = std::max(b.y_max, circles[i].y + circles[i].r);
   }
   return b;
+}
+
+bool sedov::is_inside(double dx, double dy, double r)
+{
+  return dx * dx + dy * dy <= r * r;
+}
+
+sedov::Result sedov::calc(const std::vector< Circle > & circles, const Box & box, size_t tests, size_t seed)
+{
+  std::default_random_engine engine(seed);
+  std::uniform_real_distribution< double > dist_x(static_cast< double >(box.x_min), static_cast< double >(box.x_max));
+  std::uniform_real_distribution< double > dist_y(static_cast< double >(box.y_min), static_cast< double >(box.y_max));
+  size_t hits_union = 0;
+  size_t hits_inter = 0;
+  for (size_t i = 0; i < tests; ++i) {
+    double x = dist_x(engine);
+    double y = dist_y(engine);
+    bool in_any = false;
+    bool in_all = true;
+    for (size_t j = 0; j < circles.size(); ++j) {
+      bool res = is_inside(x - static_cast< double >(circles[j].x), y - static_cast< double >(circles[j].y),
+        static_cast< double >(circles[j].r));
+      in_any = in_any || res;
+      in_all = in_all && res;
+    }
+    if (in_any) {
+      ++hits_union;
+    }
+    if (in_all) {
+      ++hits_inter;
+    }
+  }
+  return Result{hits_union, hits_inter};
 }
