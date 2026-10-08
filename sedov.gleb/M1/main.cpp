@@ -1,6 +1,12 @@
 #include <iostream>
 #include <random>
 #include <future>
+#include <vector>
+#include <algorithm>
+#include <functional>
+#include <cstddef>
+#include <iomanip>
+#include <limits>
 
 namespace sedov
 {
@@ -82,6 +88,13 @@ int main(int argc, char ** argv)
     std::cerr << ba.what() << '\n';
     return 2;
   }
+
+  double square = (static_cast< double >(box.x_max) - static_cast< double >(box.x_min)) *
+    (static_cast< double >(box.y_max) - static_cast< double >(box.y_min));
+  double s_union = square * static_cast< double >(hits.hits_union) / static_cast< double >(tries);
+  double s_inter = square * static_cast< double >(hits.hits_inter) / static_cast< double >(tries);
+  std::cout << std::setprecision(std::numeric_limits< double >::max_digits10) << s_union << ' ' << s_inter << '\n';
+  return 0;
 }
 
 std::vector< sedov::Circle > sedov::read_circles(std::istream & in)
