@@ -39,14 +39,14 @@ int main(int argc, char ** argv)
 {
   long long threads = 0, tries = 0, seed = 0;
   if (argc < 3 || argc > 4) {
-    std::cerr << "Аргументов слишком мало\n";
+    std::cerr << "Incorrect number of arguments\n";
     return 1;
   }
   try {
     threads = std::stoll(argv[1]);
-    tries = std::stoi(argv[2]);
+    tries = std::stoll(argv[2]);
     if (argc == 4) {
-      seed = std::stoi(argv[3]);
+      seed = std::stoll(argv[3]);
     }
   } catch (const std::invalid_argument & ia) {
     std::cerr << ia.what() << '\n';
@@ -104,12 +104,12 @@ std::vector< sedov::Circle > sedov::read_circles(std::istream & in)
     long long r = 0, ignore = 0, x = 0, y = 0;
     if (!(in >> r)) {
       if (!in.eof()) {
-        throw std::invalid_argument("Не удалось разобрать фигуру");
+        throw std::invalid_argument("Could not make out the figure");
       }
       break;
     }
     if (!(in >> ignore >> x >> y)) {
-      throw std::invalid_argument("Неполная фигура");
+      throw std::invalid_argument("Incomplete figure");
     }
     v.emplace_back(Circle{r, x, y});
   }
