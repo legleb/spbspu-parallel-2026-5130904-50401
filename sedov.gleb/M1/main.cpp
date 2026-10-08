@@ -8,6 +8,13 @@ namespace sedov
   };
 
   std::vector< Circle > read_circles(std::istream & in);
+
+  struct Box
+  {
+    long long x_min, x_max, y_min, y_max;
+  };
+
+  Box calc_box(const std::vector< Circle > & circles);
 }
 
 int main(int argc, char ** argv)
@@ -50,6 +57,8 @@ int main(int argc, char ** argv)
     std::cout << 0 << ' ' << 0 << '\n';
     return 0;
   }
+
+  sedov::Box box = sedov::calc_box(circles);
 }
 
 std::vector< sedov::Circle > sedov::read_circles(std::istream & in)
@@ -69,4 +78,17 @@ std::vector< sedov::Circle > sedov::read_circles(std::istream & in)
     v.emplace_back(Circle{r, x, y});
   }
   return v;
+}
+
+sedov::Box sedov::calc_box(const std::vector< Circle > & circles)
+{
+  const Circle & c = circles.front();
+  Box b{c.x - c.r, c.x + c.r, c.y - c.r, c.y + c.r};
+  for (size_t i = 1; i < circles.size(); ++i) {
+    b.x_min = std::min(b.x_min, circles[i].x - circles[i].r);
+    b.x_max = std::max(b.x_max, circles[i].x + circles[i].r);
+    b.y_min = std::min(b.y_min, circles[i].y - circles[i].r);
+    b.y_max = std::max(b.y_max, circles[i].y + circles[i].r);
+  }
+  return b;
 }
