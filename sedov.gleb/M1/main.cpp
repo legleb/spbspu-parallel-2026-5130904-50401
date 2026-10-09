@@ -11,29 +11,30 @@
 #include <new>
 
 namespace sedov {
-  struct Circle {
-    long long r, x, y;
+  struct Shape {
+    long long a, b, x, y;
   };
 
-  std::vector< Circle > readCircles(std::istream& in);
+  std::vector< Shape > readShapes(std::istream &in);
 
   struct Box {
     long long x_min, x_max, y_min, y_max;
   };
 
-  Box calcBox(const std::vector< Circle >& circles);
+  Box calcBox(const std::vector< Shape > &shapes);
 
   struct Result {
     size_t hits_union, hits_inter;
   };
 
-  bool isInside(double dx, double dy, double r);
-  Result calc(const std::vector< Circle >& circles, const Box& box, size_t tests, size_t seed);
-  Result countTotalHits(
-      const std::vector< Circle >& circles, const Box& box, size_t threads, size_t tries, size_t seed);
+  bool isInside(double dx, double dy, double a, double b);
+
+  Result calc(const std::vector< Shape > &shapes, const Box &box, size_t tests, size_t seed);
+
+  Result countTotalHits(const std::vector< Shape > &shapes, const Box &box, size_t threads, size_t tries, size_t seed);
 }
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
   long long threads = 0, tries = 0, seed = 0;
   if (argc < 3 || argc > 4) {
@@ -46,10 +47,10 @@ int main(int argc, char** argv)
     if (argc == 4) {
       seed = std::stoll(argv[3]);
     }
-  } catch (const std::invalid_argument& ia) {
+  } catch (const std::invalid_argument &ia) {
     std::cerr << ia.what() << '\n';
     return 1;
-  } catch (const std::out_of_range& oor) {
+  } catch (const std::out_of_range &oor) {
     std::cerr << oor.what() << '\n';
     return 1;
   }
@@ -59,30 +60,30 @@ int main(int argc, char** argv)
   }
   threads = threads > 0 ? threads : 1;
 
-  std::vector< sedov::Circle > circles;
+  std::vector< sedov::Shape > shapes;
   try {
-    circles = sedov::readCircles(std::cin);
-  } catch (const std::invalid_argument& ia) {
+    shapes = sedov::readShapes(std::cin);
+  } catch (const std::invalid_argument &ia) {
     std::cerr << ia.what() << '\n';
     return 2;
-  } catch (const std::bad_alloc& ba) {
+  } catch (const std::bad_alloc &ba) {
     std::cerr << ba.what() << '\n';
     return 2;
   }
-  if (circles.empty()) {
+  if (shapes.empty()) {
     std::cout << 0 << ' ' << 0 << '\n';
     return 0;
   }
 
-  const sedov::Box box = sedov::calcBox(circles);
+  const sedov::Box box = sedov::calcBox(shapes);
 
   sedov::Result hits{0, 0};
   try {
-    hits = sedov::countTotalHits(circles, box, threads, tries, seed);
-  } catch (const std::system_error& se) {
+    hits = sedov::countTotalHits(shapes, box, threads, tries, seed);
+  } catch (const std::system_error &se) {
     std::cerr << se.what() << '\n';
     return 2;
-  } catch (const std::bad_alloc& ba) {
+  } catch (const std::bad_alloc &ba) {
     std::cerr << ba.what() << '\n';
     return 2;
   }
@@ -95,44 +96,49 @@ int main(int argc, char** argv)
   return 0;
 }
 
-std::vector< sedov::Circle > sedov::readCircles(std::istream& in)
+std::vector< sedov::Shape > sedov::readShapes(std::istream &in)
 {
-  std::vector< Circle > v;
+  std::vector< Shape > v;
   while (true) {
-    long long r = 0, ignore = 0, x = 0, y = 0;
-    if (!(in >> r)) {
+    long long a = 0, b = 0, x = 0, y = 0;
+    if (!(in >> a)) {
       if (!in.eof()) {
         throw std::invalid_argument("Could not make out the figure");
       }
       break;
     }
-    if (!(in >> ignore >> x >> y)) {
+    if (!(in >> b >> x >> y)) {
       throw std::invalid_argument("Incomplete figure");
     }
-    v.emplace_back(Circle{r, x, y});
+    if (!b) {
+      b = a;
+    }
+    v.emplace_back(Shape{a, b, x, y});
   }
   return v;
 }
 
-sedov::Box sedov::calcBox(const std::vector< Circle >& circles)
+sedov::Box sedov::calcBox(const std::vector< Shape > &shapes)
 {
-  const Circle& c = circles.front();
-  Box b{c.x - c.r, c.x + c.r, c.y - c.r, c.y + c.r};
-  for (size_t i = 1; i < circles.size(); ++i) {
-    b.x_min = std::min(b.x_min, circles[i].x - circles[i].r);
-    b.x_max = std::max(b.x_max, circles[i].x + circles[i].r);
-    b.y_min = std::min(b.y_min, circles[i].y - circles[i].r);
-    b.y_max = std::max(b.y_max, circles[i].y + circles[i].r);
+  const Shape &c = shapes.front();
+  Box box{c.x - c.a, c.x + c.a, c.y - c.b, c.y + c.b};
+  for (size_t i = 1; i < shapes.size(); ++i) {
+    box.x_min = std::min(box.x_min, shapes[i].x - shapes[i].a);
+    box.x_max = std::max(box.x_max, shapes[i].x + shapes[i].a);
+    box.y_min = std::min(box.y_min, shapes[i].y - shapes[i].b);
+    box.y_max = std::max(box.y_max, shapes[i].y + shapes[i].b);
   }
-  return b;
+  return box;
 }
 
-bool sedov::isInside(double dx, double dy, double r)
+bool sedov::isInside(double dx, double dy, double a, double b)
 {
-  return dx * dx + dy * dy <= r * r;
+  const double nx = dx / a;
+  const double ny = dy / b;
+  return nx * nx + ny * ny <= 1.0;
 }
 
-sedov::Result sedov::calc(const std::vector< Circle >& circles, const Box& box, size_t tests, size_t seed)
+sedov::Result sedov::calc(const std::vector< Shape > &shapes, const Box &box, size_t tests, size_t seed)
 {
   std::default_random_engine engine(seed);
   std::uniform_real_distribution< double > dist_x(static_cast< double >(box.x_min), static_cast< double >(box.x_max));
@@ -144,9 +150,9 @@ sedov::Result sedov::calc(const std::vector< Circle >& circles, const Box& box, 
     const double y = dist_y(engine);
     bool in_any = false;
     bool in_all = true;
-    for (size_t j = 0; j < circles.size(); ++j) {
-      const bool res = isInside(x - static_cast< double >(circles[j].x), y - static_cast< double >(circles[j].y),
-          static_cast< double >(circles[j].r));
+    for (size_t j = 0; j < shapes.size(); ++j) {
+      const bool res = isInside(x - static_cast< double >(shapes[j].x), y - static_cast< double >(shapes[j].y),
+          static_cast< double >(shapes[j].a), static_cast< double >(shapes[j].b));
       in_any = in_any || res;
       in_all = in_all && res;
     }
@@ -157,7 +163,7 @@ sedov::Result sedov::calc(const std::vector< Circle >& circles, const Box& box, 
 }
 
 sedov::Result sedov::countTotalHits(
-    const std::vector< Circle >& circles, const Box& box, size_t threads, size_t tries, size_t seed)
+    const std::vector< Shape > &shapes, const Box &box, size_t threads, size_t tries, size_t seed)
 {
   const size_t base = tries / threads;
   const size_t rem = tries % threads;
@@ -167,7 +173,7 @@ sedov::Result sedov::countTotalHits(
     size_t local_tries = base + (i < rem ? 1 : 0);
     size_t local_seed = seed + i;
     futures.emplace_back(
-        std::async(std::launch::async, calc, std::cref(circles), std::cref(box), local_tries, local_seed));
+        std::async(std::launch::async, calc, std::cref(shapes), std::cref(box), local_tries, local_seed));
   }
   Result res{0, 0};
   for (size_t i = 0; i < threads; ++i) {
